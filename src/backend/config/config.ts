@@ -9,8 +9,8 @@ const config = {
   port_https: Number(process.env.PORT_HTTPS || 3121),
   nodeEnv: process.env.NODE_ENV || 'development',
   certs: {
-    key: fs.readFileSync('src/certs/key.pem'),
-    cert: fs.readFileSync('src/certs/cert.pem'),
+    key: fs.readFileSync('src/backend/certs/key.pem'),
+    cert: fs.readFileSync('src/backend/certs/cert.pem'),
   },
   frontendPath: path.join(__dirname, '../../frontend'),
 };
