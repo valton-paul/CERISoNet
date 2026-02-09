@@ -50,4 +50,6 @@ CERISoNet/
 ### Scripts npm
 
 - `npm run dev` : Démarre le serveur en mode développement
-
+- `npm run build` : Compile le projet
+- `npm run start` : Démarre le serveur en mode production
+- `npm run lint` : Lint le code

@@ -13,7 +13,7 @@ app.use("/api", router);
 
 // Fichiers statiques et fallback pour le routing Angular
 app.use(express.static(config.frontendPath));
-app.get("/", (req, res) => {
+app.get("/login", (req, res) => {
   res.sendFile(path.join(config.frontendPath, "index.html"));
 });
 
