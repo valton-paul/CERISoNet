@@ -22,31 +22,6 @@ ssh uapv*******@pedago.univ-avignon.fr
 https://pedago.univ-avignon.fr:3121
 ```
 
-
-## Architecture CERISoNet
-
-### Structure du projet
-
-```
-CERISoNet/
-├── frontend/                       # Code source Angular
-│   └── index.html                  # Page d'accueil
-├── src/
-│   └── server/                     # Serveur Node.js/Express unique
-│       ├── certs/                  # Certificats SSL/TLS (cert.pem, key.pem)
-│       └── src/                    # Code source du serveur
-│           ├── config/             # Configuration (ports, chemins, etc.)
-│           │   └── config.ts       
-│           ├── domain/             # Logique métier
-│           ├── infrastructure/     # Accès aux données
-│           ├── interface/          # Couche API
-│           │   ├── controllers/   
-│           │   └── routes/         
-│           └── index.ts            # Point d'entrée du serveur
-├── package.json                    
-└── tsconfig.json                   
-```
-
 ### Scripts npm
 
 - `npm run dev` : Démarre le serveur en mode développement
