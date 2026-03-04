@@ -8,6 +8,10 @@ const config = {
   port: Number(process.env.PORT_HTTP || 3120),
   port_https: Number(process.env.PORT_HTTPS || 3121),
   nodeEnv: process.env.NODE_ENV || 'development',
+  databases: {
+    postgres: process.env.DATABASE_URL_PG || '',
+    mongodb: process.env.DATABASE_URL_MONGO || '',
+  },
   certs: {
     key: fs.readFileSync('src/backend/certs/key.pem'),
     cert: fs.readFileSync('src/backend/certs/cert.pem'),

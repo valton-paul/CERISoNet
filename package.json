@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "front": "ng serve",
-    "back": "npm run build && nodemon --watch src/backend --exec ts-node --project tsconfig.backend.json src/backend/index.ts",
+    "back": "nodemon",
+    "dev": "npm run build && nodemon",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -32,8 +33,11 @@
     "@angular/forms": "^21.1.0",
     "@angular/platform-browser": "^21.1.0",
     "@angular/router": "^21.1.0",
-    "cors": "^2.8.6",
+    "cors": "^2.8.5",
     "express": "^5.2.1",
+    "mongodb": "^6.12.0",
+    "pg": "^8.13.0",
+    "helmet": "^8.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
