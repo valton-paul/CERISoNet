@@ -35,9 +35,9 @@
     "@angular/router": "^21.1.0",
     "cors": "^2.8.5",
     "express": "^5.2.1",
+    "helmet": "^8.1.0",
     "mongodb": "^6.12.0",
     "pg": "^8.13.0",
-    "helmet": "^8.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -50,6 +50,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.2.0",
+    "@types/pg": "^8.18.0",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "globals": "^17.3.0",

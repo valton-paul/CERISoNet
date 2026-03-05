@@ -9,7 +9,13 @@ const config = {
   port_https: Number(process.env.PORT_HTTPS || 3121),
   nodeEnv: process.env.NODE_ENV || 'development',
   databases: {
-    postgres: process.env.DATABASE_URL_PG || '',
+    postgres: {
+      host: process.env.POSTGRES_URL,
+      port: Number(process.env.POSTGRES_PORT || 5432),
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DATABASE,
+    },
     mongodb: process.env.DATABASE_URL_MONGO || '',
   },
   certs: {

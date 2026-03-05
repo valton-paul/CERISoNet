@@ -12,21 +12,31 @@ import { CommonModule } from '@angular/common';
 export class AuthComponent {
   username = '';
   password = '';
+  successMessage: string | null = null;
+  errorMessage: string | null = null;
 
   constructor(private http: HttpClient) {}
 
   onSubmit() {
     const apiUrl = 'https://localhost:3121/api/auth/login';
 
-    this.http.post(apiUrl, {
+    this.http.post<{ success: boolean; message?: string; error?: string }>(apiUrl, {
       username: this.username,
       password: this.password
-    }, { responseType: 'text' }).subscribe({
+    }).subscribe({
       next: (response) => {
-        console.log("response: " + response);
+        if (response.success) {
+          this.successMessage = response.message || 'Connecté';
+          this.errorMessage = null;
+        } else {
+          this.successMessage = null;
+          this.errorMessage = response.error || 'Identifiant ou mot de passe incorrect';
+        }
       },
       error: (err) => {
         console.error(err);
+        this.successMessage = null;
+        this.errorMessage = err?.error?.error || 'Erreur de connexion au serveur';
       }
     });
   }

@@ -7,12 +7,16 @@ export async function connectPostgres(): Promise<Pool> {
   if (pool) return pool;
 
   pool = new Pool({
-    connectionString: config.databases.postgres,
+    host: config.databases.postgres.host,
+    port: config.databases.postgres.port,
+    user: config.databases.postgres.user,
+    password: config.databases.postgres.password,
+    database: config.databases.postgres.database,
   });
 
   try {
     const client = await pool.connect();
-    await client.query('SELECT 1');
+    await client.query('SELECT 1 FROM fredouil.users');
     client.release();
     console.log('PostgreSQL connecté');
   } catch (err) {
@@ -26,12 +30,4 @@ export async function connectPostgres(): Promise<Pool> {
 export function getPostgres(): Pool {
   if (!pool) throw new Error('PostgreSQL non initialisé. Appeler connectPostgres() au démarrage.');
   return pool;
-}
-
-export async function disconnectPostgres(): Promise<void> {
-  if (pool) {
-    await pool.end();
-    pool = null;
-    console.log('PostgreSQL déconnecté');
-  }
 }
