@@ -1,0 +1,46 @@
+<div class="max-w-xl mx-auto my-8">
+  <header class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">CERISoNet</h1>
+    <button
+      class="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+      (click)="logout()"
+    >
+      Déconnexion
+    </button>
+  </header>
+
+  <section class="mb-4">
+    <p class="text-sm text-gray-600">
+      Fil d'actualité CERISoNet
+    </p>
+  </section>
+
+  <section class="space-y-4">
+    <article
+      *ngFor="let post of posts"
+      class="border border-gray-300 rounded overflow-hidden"
+    >
+      <div class="flex items-center px-3 py-2">
+        <div
+          class="w-8 h-8 mr-2 rounded-full bg-gray-300 flex items-center justify-center text-xs"
+        >
+          {{ post.initials }}
+        </div>
+        <div>
+          <div class="text-sm font-semibold">{{ post.author }}</div>
+          <div class="text-xs text-gray-500">{{ post.time }}</div>
+        </div>
+      </div>
+
+      <div class="bg-gray-200 h-60 flex items-center justify-center text-gray-600">
+        Image {{ post.id }}
+      </div>
+
+      <div class="px-3 py-2 text-sm">
+        <span class="font-semibold mr-1">{{ post.author }}</span>
+        {{ post.caption }}
+      </div>
+    </article>
+  </section>
+</div>
+

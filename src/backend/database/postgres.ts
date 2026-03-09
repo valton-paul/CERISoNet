@@ -16,7 +16,7 @@ export async function connectPostgres(): Promise<Pool> {
 
   try {
     const client = await pool.connect();
-    await client.query('SELECT 1 FROM fredouil.users');
+    await client.query('SELECT 1 FROM uapv2601040.compte');
     client.release();
     console.log('PostgreSQL connecté');
   } catch (err) {
@@ -28,6 +28,6 @@ export async function connectPostgres(): Promise<Pool> {
 }
 
 export function getPostgres(): Pool {
-  if (!pool) throw new Error('PostgreSQL non initialisé. Appeler connectPostgres() au démarrage.');
+  if (!pool) throw new Error('PostgreSQL non initialisé.');
   return pool;
 }

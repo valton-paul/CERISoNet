@@ -7,7 +7,9 @@ let db: Db | null = null;
 export async function connectMongoDB(): Promise<Db> {
   if (db) return db;
 
-  client = new MongoClient(config.databases.mongodb);
+  const url = `mongodb://${config.databases.mongodb.user}:${config.databases.mongodb.password}@${config.databases.mongodb.host}:${config.databases.mongodb.port}/${config.databases.mongodb.database}`;
+  console.log(url);
+  client = new MongoClient(url);
 
   try {
     await client.connect();
@@ -23,15 +25,6 @@ export async function connectMongoDB(): Promise<Db> {
 }
 
 export function getMongoDB(): Db {
-  if (!db) throw new Error('MongoDB non initialisé. Appeler connectMongoDB() au démarrage.');
+  if (!db) throw new Error('MongoDB non initialisé.');
   return db;
-}
-
-export async function disconnectMongoDB(): Promise<void> {
-  if (client) {
-    await client.close();
-    client = null;
-    db = null;
-    console.log('MongoDB déconnecté');
-  }
 }

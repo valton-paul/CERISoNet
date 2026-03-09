@@ -5,7 +5,7 @@ import cors from "cors";
 import config from "./config/config";
 import router from "./interface/routes/router";
 import helmet from "helmet";
-import { connectPostgres } from "./database";
+import { connectMongoDB, connectPostgres } from "./database";
 
 const app = express();
 
@@ -41,7 +41,7 @@ const server = https.createServer(httpsOptions, app);
 async function startServer() {
   try {
     await connectPostgres();
-  //  await connectMongoDB();
+    //await connectMongoDB();
   } catch (err) {
     console.error('Impossible de démarrer les connexions BDD:', err);
     process.exit(1);
