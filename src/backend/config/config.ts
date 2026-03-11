@@ -9,8 +9,19 @@ const config = {
   port_https: Number(process.env.PORT_HTTPS || 3121),
   nodeEnv: process.env.NODE_ENV || 'development',
   databases: {
-    postgres: process.env.DATABASE_URL_PG || '',
-    mongodb: process.env.DATABASE_URL_MONGO || '',
+    postgres: {
+      host: process.env.POSTGRES_URL,
+      port: Number(process.env.POSTGRES_PORT || 5432),
+      user: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DATABASE,
+    },
+    mongodb: {
+      url: process.env.MONGO_URL || '',
+      collection:
+        process.env.MONGO_COLLECTION ||
+        `MySession${process.env.PORT_HTTPS || 3121}`,
+    }
   },
   certs: {
     key: fs.readFileSync('src/backend/certs/key.pem'),
