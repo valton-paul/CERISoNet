@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-auth',
@@ -13,32 +14,51 @@ import { Router } from '@angular/router';
 export class AuthComponent {
   mail = '';
   password = '';
-  successMessage: string | null = null;
-  errorMessage: string | null = null;
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private toastr: ToastrService
+  ) {}
 
   onSubmit() {
     const apiUrl = 'https://localhost:3121/api/auth/login';
 
-    this.http.post<{ success: boolean; message?: string; error?: string }>(apiUrl, {
-      mail: this.mail,
-      password: this.password
-    }).subscribe({
+    this.http.post<{
+      success: boolean;
+      message?: string;
+      error?: string;
+      lastLogin?: string;
+      username?: string;
+      userId?: number;
+      mail?: string;
+    }>(
+      apiUrl,
+      {
+        mail: this.mail,
+        password: this.password
+      },
+      {
+        withCredentials: true
+      }
+    ).subscribe({
       next: (response) => {
         if (response.success) {
-          this.successMessage = response.message || 'Connecté';
-          this.errorMessage = null;
+
+          localStorage.setItem('username', response.username || '');
+          localStorage.setItem('userId', response.userId?.toString() || '');
+          localStorage.setItem('mail', response.mail || '');
+          localStorage.setItem('lastLogin', response.lastLogin || '');
+          localStorage.setItem('connected', 'true');
+
+          this.toastr.success('Connexion réussie ! Dernière connexion le ' + response.lastLogin);
           this.router.navigate(['/home']);
         } else {
-          this.successMessage = null;
-          this.errorMessage = response.error || 'Identifiant ou mot de passe incorrect';
+          this.toastr.error(response.error || 'Identifiant ou mot de passe incorrect');
         }
       },
       error: (err) => {
-        console.error(err);
-        this.successMessage = null;
-        this.errorMessage = err?.error?.error || 'Erreur de connexion au serveur';
+        this.toastr.error(err?.error?.error || 'Erreur de connexion au serveur');
       }
     });
   }

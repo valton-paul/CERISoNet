@@ -1,30 +1,19 @@
-import { MongoClient, Db } from 'mongodb';
-import config from '../config/config';
+import session from "express-session";
+import connectMongoDBSession from "connect-mongodb-session";
+import config from "../config/config";
 
-let client: MongoClient | null = null;
-let db: Db | null = null;
+const MongoDBStore = connectMongoDBSession(session);
 
-export async function connectMongoDB(): Promise<Db> {
-  if (db) return db;
+export const store = new MongoDBStore({
+  uri: config.databases.mongodb.url,
+  collection: config.databases.mongodb.collection,
+});
 
-  const url = `mongodb://${config.databases.mongodb.user}:${config.databases.mongodb.password}@${config.databases.mongodb.host}:${config.databases.mongodb.port}/${config.databases.mongodb.database}`;
-  console.log(url);
-  client = new MongoClient(url);
+export const connectMongoDB = async () => {
+  await store.client.connect();
+  console.log("Connecté à MongoDB");
+};
 
-  try {
-    await client.connect();
-    db = client.db();
-    await db.command({ ping: 1 });
-    console.log('MongoDB connecté');
-  } catch (err) {
-    console.error('Erreur connexion MongoDB:', err);
-    throw err;
-  }
-
-  return db;
-}
-
-export function getMongoDB(): Db {
-  if (!db) throw new Error('MongoDB non initialisé.');
-  return db;
-}
+export const getMongoDB = async () => {
+  return store.client;
+};

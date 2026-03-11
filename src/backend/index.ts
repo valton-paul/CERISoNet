@@ -5,14 +5,29 @@ import cors from "cors";
 import config from "./config/config";
 import router from "./interface/routes/router";
 import helmet from "helmet";
-import { connectMongoDB, connectPostgres } from "./database";
+import session from "express-session";
+import { connectPostgres } from "./database/postgres";
+import { connectMongoDB, store} from "./database/mongodb";
 
 const app = express();
 
-app.use(cors({ origin: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json()); // middleware pour parser le JSON dans les requêtes entrantes
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet()); // simple middleware de sécurité (rajoute des headers)
+
+app.use(
+  session({
+    secret: "session-secret",
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 1, // 1 heure
+      secure: true,
+    },
+  })
+);
 
 app.use("/api", router);
 
@@ -41,7 +56,7 @@ const server = https.createServer(httpsOptions, app);
 async function startServer() {
   try {
     await connectPostgres();
-    //await connectMongoDB();
+    await connectMongoDB();
   } catch (err) {
     console.error('Impossible de démarrer les connexions BDD:', err);
     process.exit(1);

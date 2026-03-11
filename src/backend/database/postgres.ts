@@ -16,9 +16,9 @@ export async function connectPostgres(): Promise<Pool> {
 
   try {
     const client = await pool.connect();
-    await client.query('SELECT 1 FROM uapv2601040.compte');
+    await client.query('SELECT 1 FROM fredouil.compte');
     client.release();
-    console.log('PostgreSQL connecté');
+    console.log('Connecté à PostgreSQL');
   } catch (err) {
     console.error('Erreur connexion PostgreSQL:', err);
     throw err;

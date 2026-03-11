@@ -1,14 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-
-interface Post {
-  id: number;
-  author: string;
-  initials: string;
-  time: string;
-  caption: string;
-}
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-home',
@@ -16,25 +9,26 @@ interface Post {
   imports: [CommonModule],
   templateUrl: './home.html'
 })
-export class HomeComponent {
-  posts: Post[] = [
-    {
-      id: 1,
-      author: 'Fourmi',
-      initials: 'FO',
-      time: 'il y a 2 min',
-      caption: 'Premier test de la timeline CERISoNet.'
-    },
-    {
-      id: 2,
-      author: 'Chat',
-      initials: 'CH',
-      time: 'il y a 10 min',
-      caption: 'Un autre post pour remplir un peu le fil.'
-    }
-  ];
+export class HomeComponent implements OnInit {
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private http: HttpClient) {}
+
+  ngOnInit(): void {
+    const apiUrl = 'https://localhost:3121/api/auth/me';
+
+    this.http
+      .get<{ connected: boolean }>(apiUrl, { withCredentials: true })
+      .subscribe({
+        next: (response) => {
+          if (!response.connected) {
+            this.router.navigate(['/auth']);
+          }
+        },
+        error: () => {
+          this.router.navigate(['/auth']);
+        },
+      });
+  }
 
   logout() {
     this.router.navigate(['/auth']);
