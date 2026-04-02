@@ -21,7 +21,9 @@ const config = {
       collection:
         process.env.MONGO_COLLECTION ||
         `MySession${process.env.PORT_HTTPS || 3121}`,
-    }
+      database: process.env.MONGO_DATABASE,
+      postsCollection: process.env.MONGO_POSTS_COLLECTION,
+    },
   },
   certs: {
     key: fs.readFileSync('src/backend/certs/key.pem'),

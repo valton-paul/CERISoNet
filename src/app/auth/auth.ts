@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { API_BASE_URL } from '../core/api-base';
 
 @Component({
   selector: 'app-auth',
@@ -22,7 +23,7 @@ export class AuthComponent {
   ) {}
 
   onSubmit() {
-    const apiUrl = 'https://localhost:3121/api/auth/login';
+    const apiUrl = `${API_BASE_URL}/auth/login`;
 
     this.http.post<{
       success: boolean;

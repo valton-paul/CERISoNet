@@ -1,18 +1,134 @@
-<div class="max-w-xl mx-auto my-8">
+<div class="max-w-xl mx-auto my-8 px-4">
   <header class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold">CERISoNet</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">CERISoNet</h1>
     <button
-      class="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+      type="button"
+      class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
       (click)="logout()"
     >
       Déconnexion
     </button>
   </header>
 
-  <section class="mb-4">
-    <p class="text-sm text-gray-600">
-      Fil d'actualité CERISoNet
+  <section class="mb-6">
+    <h2 class="text-lg font-semibold text-slate-800">Fil d’actualité</h2>
+    <p class="text-sm text-slate-500 mt-0.5">
+      @if (!feedLoading() && posts().length > 0) {
+        {{ displayedPosts().length }} publication(s) affichée(s)
+        @if (hiddenCount() > 0) {
+          <span class="text-slate-400">
+            — {{ hiddenCount() }} autre(s) en mémoire (non affichée(s) pour l’instant)
+          </span>
+        }
+      }
     </p>
   </section>
-</div>
 
+  @if (feedLoading()) {
+    <div class="flex items-center gap-2 text-slate-500 text-sm py-8 justify-center">
+      <span
+        class="inline-block size-4 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin"
+        aria-hidden="true"
+      ></span>
+      Chargement des publications…
+    </div>
+  } @else if (feedError()) {
+    <p class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+      {{ feedError() }}
+    </p>
+  } @else if (posts().length === 0) {
+    <p class="text-sm text-slate-500 text-center py-10">Aucune publication pour le moment.</p>
+  } @else {
+    <ul class="flex flex-col gap-4">
+      @for (post of displayedPosts(); track post._id) {
+        <li
+          class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden hover:border-slate-300 transition-colors"
+        >
+          <article class="p-4">
+            <div class="flex items-start gap-3 mb-3">
+              <div
+                class="shrink-0 size-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-semibold"
+                aria-hidden="true"
+              >
+                {{ post.createdBy.toString().slice(0, 2) }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-slate-900 leading-tight">
+                  Utilisateur #{{ post.createdBy }}
+                </p>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  {{ post.date }} · {{ post.hour }}
+                </p>
+              </div>
+              @if (post.shared) {
+                <span
+                  class="shrink-0 text-[10px] uppercase tracking-wide font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded"
+                >
+                  Partage
+                </span>
+              }
+            </div>
+
+            <p class="text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap">
+              {{ post.body }}
+            </p>
+
+            @if (post.images?.url) {
+              <figure class="mt-3 rounded-lg overflow-hidden border border-slate-100 bg-slate-50">
+                <img
+                  [src]="post.images!.url"
+                  [alt]="post.images!.title || 'Image du post'"
+                  class="w-full max-h-64 object-cover"
+                  loading="lazy"
+                />
+                @if (post.images!.title) {
+                  <figcaption class="text-xs text-slate-500 px-2 py-1.5">
+                    {{ post.images!.title }}
+                  </figcaption>
+                }
+              </figure>
+            }
+
+            @if (post.hashtags.length) {
+              <div class="flex flex-wrap gap-1.5 mt-3">
+                @for (tag of post.hashtags; track tag) {
+                  <span
+                    class="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full"
+                  >
+                    {{ tag }}
+                  </span>
+                }
+              </div>
+            }
+
+            <div
+              class="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600"
+            >
+              <span class="inline-flex items-center gap-1" title="J’aime">
+                <span class="text-rose-500" aria-hidden="true">♥</span>
+                {{ post.likes }}
+              </span>
+              <span class="text-slate-400">·</span>
+              <span>
+                {{ post.comments.length }}
+                commentaire(s)
+              </span>
+            </div>
+
+            @if (post.comments.length) {
+              <ul class="mt-3 space-y-2 pl-3 border-l-2 border-slate-100">
+                @for (c of post.comments; track $index) {
+                  <li class="text-sm text-slate-600">
+                    <span class="font-medium text-slate-800">#{{ c.commentedBy }}</span>
+                    <span class="text-slate-400 text-xs ml-1">{{ c.date }} {{ c.hour }}</span>
+                    <p class="mt-0.5">{{ c.text }}</p>
+                  </li>
+                }
+              </ul>
+            }
+          </article>
+        </li>
+      }
+    </ul>
+  }
+</div>
