@@ -1,31 +1,20 @@
-<div class="max-w-xl mx-auto my-8 px-4">
-  <header class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">CERISoNet</h1>
-    <button
-      type="button"
-      class="px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-      (click)="logout()"
+<div class="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200/90 pb-16">
+  <div class="max-w-2xl mx-auto px-4 sm:px-5 pt-6 sm:pt-8">
+    <header
+      class="sticky top-0 z-10 -mx-4 sm:-mx-5 px-4 sm:px-5 py-3 mb-6 flex items-center justify-between gap-3 rounded-b-xl border border-slate-200/80 border-t-0 bg-white/85 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/70"
     >
-      Déconnexion
-    </button>
-  </header>
-
-  <section class="mb-6">
-    <h2 class="text-lg font-semibold text-slate-800">Fil d’actualité</h2>
-    <p class="text-sm text-slate-500 mt-0.5">
-      @if (!feedLoading() && posts().length > 0) {
-        {{ displayedPosts().length }} publication(s) affichée(s)
-        @if (hiddenCount() > 0) {
-          <span class="text-slate-400">
-            — {{ hiddenCount() }} autre(s) en mémoire (non affichée(s) pour l’instant)
-          </span>
-        }
-      }
-    </p>
-  </section>
+      <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">CERISoNet</h1>
+      <button
+        type="button"
+        class="shrink-0 px-3 py-2 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors shadow-sm"
+        (click)="logout()"
+      >
+        Déconnexion
+      </button>
+    </header>
 
   @if (feedLoading()) {
-    <div class="flex items-center gap-2 text-slate-500 text-sm py-8 justify-center">
+    <div class="flex items-center gap-2 text-slate-600 text-sm py-12 justify-center rounded-xl bg-white/80 border border-slate-200/80 shadow-sm">
       <span
         class="inline-block size-4 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin"
         aria-hidden="true"
@@ -33,43 +22,88 @@
       Chargement des publications…
     </div>
   } @else if (feedError()) {
-    <p class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+    <p class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3 shadow-sm">
       {{ feedError() }}
     </p>
-  } @else if (posts().length === 0) {
-    <p class="text-sm text-slate-500 text-center py-10">Aucune publication pour le moment.</p>
   } @else {
-    <ul class="flex flex-col gap-4">
+    <section
+      class="mb-6 rounded-2xl bg-white border border-slate-200/90 shadow-md p-4 sm:p-5 ring-1 ring-slate-200/40"
+      aria-labelledby="compose-heading"
+    >
+      <h2 id="compose-heading" class="text-sm font-semibold text-slate-900 mb-3">
+        Nouvelle publication
+      </h2>
+      <label for="post-body" class="sr-only">Texte de la publication</label>
+      <textarea
+        id="post-body"
+        name="body"
+        rows="4"
+        maxlength="5000"
+        [(ngModel)]="composeBody"
+        [disabled]="publishSubmitting()"
+        placeholder="Quoi de neuf ?"
+        class="w-full resize-y min-h-[100px] rounded-xl border border-slate-300 px-3 py-2.5 text-slate-900 text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
+      ></textarea>
+      <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
+        <span class="text-xs text-slate-500 tabular-nums">{{ composeBody.length }} / 5000</span>
+        <button
+          type="button"
+          (click)="publish()"
+          [disabled]="publishSubmitting() || composeBody.trim().length === 0"
+          class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none transition-colors shadow-sm"
+        >
+          @if (publishSubmitting()) {
+            Publication…
+          } @else {
+            Publier
+          }
+        </button>
+      </div>
+    </section>
+    <ul class="flex flex-col gap-5">
       @for (post of displayedPosts(); track post._id) {
         <li
-          class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden hover:border-slate-300 transition-colors"
+          class="group bg-white border border-slate-200/90 rounded-2xl shadow-md shadow-slate-200/50 overflow-hidden ring-1 ring-slate-200/40 hover:ring-indigo-200/60 hover:shadow-lg hover:shadow-slate-200/60 transition-all duration-200"
         >
-          <article class="p-4">
-            <div class="flex items-start gap-3 mb-3">
+          <article class="relative pl-1 border-l-[3px] border-indigo-500">
+            <div class="p-4 sm:p-5">
+            <div class="flex items-start gap-3 mb-4">
               <div
-                class="shrink-0 size-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-semibold"
+                class="shrink-0 size-11 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-sm font-semibold shadow-md ring-2 ring-white uppercase"
                 aria-hidden="true"
               >
-                {{ post.createdBy.toString().slice(0, 2) }}
+                {{ authorInitials(post) }}
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-slate-900 leading-tight">
-                  Utilisateur #{{ post.createdBy }}
-                </p>
-                <p class="text-xs text-slate-500 mt-0.5">
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <p class="font-semibold text-slate-900 leading-tight">
+                    {{ authorDisplayName(post) }}
+                  </p>
+                  @if (!post.author) {
+                    <span class="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                      Compte inconnu
+                    </span>
+                  }
+                </div>
+                @if (post.author?.mail) {
+                  <p class="text-xs text-slate-500 truncate mt-0.5" [title]="post.author!.mail">
+                    {{ post.author!.mail }}
+                  </p>
+                }
+                <p class="text-xs text-slate-500 mt-1 font-medium">
                   {{ post.date }} · {{ post.hour }}
                 </p>
               </div>
               @if (post.shared) {
                 <span
-                  class="shrink-0 text-[10px] uppercase tracking-wide font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded"
+                  class="shrink-0 text-[10px] uppercase tracking-wide font-semibold text-amber-800 bg-amber-100 px-2 py-1 rounded-md border border-amber-200/80"
                 >
                   Partage
                 </span>
               }
             </div>
 
-            <p class="text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap">
+            <p class="text-slate-800 text-base leading-[1.65] whitespace-pre-wrap pl-0.5">
               {{ post.body }}
             </p>
 
@@ -89,11 +123,11 @@
               </figure>
             }
 
-            @if (post.hashtags.length) {
-              <div class="flex flex-wrap gap-1.5 mt-3">
-                @for (tag of post.hashtags; track tag) {
+            @if (post.hashtags?.length) {
+              <div class="flex flex-wrap gap-2 mt-4">
+                @for (tag of post.hashtags!; track tag) {
                   <span
-                    class="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full"
+                    class="text-xs font-semibold text-indigo-800 bg-indigo-100/90 px-2.5 py-1 rounded-lg border border-indigo-200/60"
                   >
                     {{ tag }}
                   </span>
@@ -102,33 +136,55 @@
             }
 
             <div
-              class="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600"
+              class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-slate-100 text-sm"
             >
-              <span class="inline-flex items-center gap-1" title="J’aime">
-                <span class="text-rose-500" aria-hidden="true">♥</span>
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-800 border border-rose-100 font-medium"
+                title="J’aime"
+              >
+                <span class="text-rose-500 text-base leading-none" aria-hidden="true">♥</span>
                 {{ post.likes }}
               </span>
-              <span class="text-slate-400">·</span>
-              <span>
-                {{ post.comments.length }}
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/80 font-medium"
+              >
+                {{ post.comments?.length ?? 0 }}
                 commentaire(s)
               </span>
             </div>
 
-            @if (post.comments.length) {
-              <ul class="mt-3 space-y-2 pl-3 border-l-2 border-slate-100">
-                @for (c of post.comments; track $index) {
-                  <li class="text-sm text-slate-600">
-                    <span class="font-medium text-slate-800">#{{ c.commentedBy }}</span>
-                    <span class="text-slate-400 text-xs ml-1">{{ c.date }} {{ c.hour }}</span>
-                    <p class="mt-0.5">{{ c.text }}</p>
-                  </li>
-                }
-              </ul>
+            @if (post.comments?.length) {
+              <div class="mt-4 rounded-xl bg-slate-50 border border-slate-200/80 p-3 sm:p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  Commentaires
+                </p>
+                <ul class="space-y-3">
+                  @for (c of post.comments!; track $index) {
+                    <li class="text-sm text-slate-700 pl-3 border-l-2 border-indigo-200">
+                      <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                        <span class="font-semibold text-slate-900">#{{ c.commentedBy }}</span>
+                        <span class="text-slate-400 text-xs">{{ c.date }} · {{ c.hour }}</span>
+                      </div>
+                      <p class="mt-1 text-slate-700 leading-relaxed">{{ c.text }}</p>
+                    </li>
+                  }
+                </ul>
+              </div>
             }
+            </div>
           </article>
         </li>
       }
     </ul>
+
+    @if (hasMoreInFeed()) {
+      <!-- Zone observée en bas de liste pour déclencher l’affichage du lot suivant -->
+      <div #loadMoreSentinel class="h-8 w-full shrink-0" aria-hidden="true"></div>
+    } @else if (posts().length > 0) {
+      <p class="text-center text-sm text-slate-500 py-6 mt-2 border-t border-slate-200/80">
+        Vous avez tout vu ({{ posts().length }} publication(s)).
+      </p>
+    }
   }
+  </div>
 </div>

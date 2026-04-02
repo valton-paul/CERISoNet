@@ -12,9 +12,21 @@ import { connectMongoDB, store} from "./database/mongodb";
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json()); // middleware pour parser le JSON dans les requêtes entrantes
-app.use(express.urlencoded({ extended: true }));
-app.use(helmet()); // simple middleware de sécurité (rajoute des headers)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); 
+
+// Le build Angular charge le CSS principal en media="print" puis bascule via onload.
+// Helmet impose script-src-attr 'none' par défaut, ce qui bloque onload → page sans styles.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src-attr": ["'unsafe-inline'"],
+      },
+    },
+  })
+);
 
 app.use(
   session({
