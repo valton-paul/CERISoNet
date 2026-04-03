@@ -22,6 +22,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        // Autorise les images distantes (URLs http/https) dans les posts.
+        "img-src": ["'self'", "data:", "https:", "http:"],
         "script-src-attr": ["'unsafe-inline'"],
       },
     },
