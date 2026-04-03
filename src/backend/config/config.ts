@@ -2,7 +2,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-dotenv.config();
+/** Racine du dépôt (fonctionne en dev `src/backend/...` et après build `dist/back/...`). */
+const projectRoot = path.resolve(__dirname, '../../..');
+
+// Toujours charger `.env` à la racine du projet (pas seulement selon `process.cwd()`).
+dotenv.config({ path: path.join(projectRoot, '.env') });
 
 const config = {
   port: Number(process.env.PORT_HTTP || 3120),
@@ -17,7 +21,7 @@ const config = {
       database: process.env.POSTGRES_DATABASE,
     },
     mongodb: {
-      url: process.env.MONGO_URL || '',
+      url: (process.env.MONGO_URL || '').trim(),
       collection:
         process.env.MONGO_COLLECTION ||
         `MySession${process.env.PORT_HTTPS || 3121}`,
@@ -26,10 +30,21 @@ const config = {
     },
   },
   certs: {
-    key: fs.readFileSync('src/backend/certs/key.pem'),
-    cert: fs.readFileSync('src/backend/certs/cert.pem'),
+    key: fs.readFileSync(path.join(projectRoot, 'src/backend/certs/key.pem')),
+    cert: fs.readFileSync(path.join(projectRoot, 'src/backend/certs/cert.pem')),
   },
-  frontendPath: path.join(__dirname, '../../../dist/front/browser'),
+  /** Build Angular : `ng build` → `dist/front/browser`. */
+  frontendPath: path.join(projectRoot, 'dist/front/browser'),
 };
+
+if (
+  !config.databases.mongodb.url.startsWith('mongodb://') &&
+  !config.databases.mongodb.url.startsWith('mongodb+srv://')
+) {
+  throw new Error(
+    `MONGO_URL manquant ou invalide dans .env (attendu : mongodb://… ou mongodb+srv://…). ` +
+      `Fichier chargé : ${path.join(projectRoot, '.env')}`,
+  );
+}
 
 export default config;
