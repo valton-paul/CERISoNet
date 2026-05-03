@@ -15,7 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { API_BASE_URL } from '../core/api-base';
 import { PostsService } from '../services/posts.service';
-import type { CERISoNetPost } from '../../shared/models/cerisonet-post';
+import type { CERISoNetPost, CERISoNetPostComment } from '../../shared/models/cerisonet-post';
 
 /** Nombre de posts affichés au départ, puis ajoutés à chaque fin de scroll. */
 const PAGE_SIZE = 12;
@@ -41,6 +41,12 @@ export class HomeComponent implements OnInit {
 
   composeBody = '';
   readonly publishSubmitting = signal(false);
+
+  /** Utilisateur connecté (pour afficher « Supprimer » sur ses commentaires). */
+  readonly currentUserId = signal<number | null>(null);
+  readonly commentDraft = signal<Record<string, string>>({});
+  readonly commentSubmitting = signal<string | null>(null);
+  readonly commentDeleting = signal<string | null>(null);
 
   /** Nombre de posts actuellement rendus (scroll infini). */
   readonly visibleCount = signal(PAGE_SIZE);
@@ -78,12 +84,15 @@ export class HomeComponent implements OnInit {
 
     const meUrl = `${API_BASE_URL}/auth/me`;
     this.http
-      .get<{ connected: boolean }>(meUrl, { withCredentials: true })
+      .get<{ connected: boolean; userId?: number }>(meUrl, { withCredentials: true })
       .subscribe({
         next: (response) => {
           if (!response.connected) {
             void this.router.navigate(['/auth']);
             return;
+          }
+          if (typeof response.userId === 'number' && Number.isFinite(response.userId)) {
+            this.currentUserId.set(response.userId);
           }
           this.loadFeed();
         },
@@ -112,6 +121,72 @@ export class HomeComponent implements OnInit {
   private loadMoreChunk(): void {
     const total = this.posts().length;
     this.visibleCount.update((n) => Math.min(n + PAGE_SIZE, total));
+  }
+
+  patchCommentDraft(postId: string, value: string): void {
+    this.commentDraft.update((m) => ({ ...m, [postId]: value }));
+  }
+
+  submitComment(postId: string): void {
+    const text = (this.commentDraft()[postId] ?? '').trim();
+    if (!text || this.commentSubmitting()) {
+      return;
+    }
+    this.commentSubmitting.set(postId);
+    this.postsService.addComment(postId, text).subscribe({
+      next: (post) => {
+        this.mergePost(post);
+        this.commentDraft.update((m) => {
+          const { [postId]: _, ...rest } = m;
+          return rest;
+        });
+        this.commentSubmitting.set(null);
+        this.toastr.success('Commentaire publié.');
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.commentSubmitting.set(null);
+        this.toastr.error(err?.error?.error ?? 'Impossible d’ajouter le commentaire.');
+      },
+    });
+  }
+
+  removeMyComment(postId: string, commentId: string | undefined): void {
+    if (!commentId) {
+      return;
+    }
+    const key = `${postId}:${commentId}`;
+    this.commentDeleting.set(key);
+    this.postsService.deleteComment(postId, commentId).subscribe({
+      next: (post) => {
+        this.mergePost(post);
+        this.commentDeleting.set(null);
+        this.toastr.success('Commentaire supprimé.');
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.commentDeleting.set(null);
+        this.toastr.error(err?.error?.error ?? 'Impossible de supprimer le commentaire.');
+      },
+    });
+  }
+
+  canDeleteComment(c: CERISoNetPostComment): boolean {
+    const uid = this.currentUserId();
+    return uid != null && c.commentedBy === uid && !!c._id;
+  }
+
+  isSubmittingComment(postId: string): boolean {
+    return this.commentSubmitting() === postId;
+  }
+
+  isDeletingComment(postId: string, commentId: string | undefined): boolean {
+    if (!commentId) {
+      return false;
+    }
+    return this.commentDeleting() === `${postId}:${commentId}`;
+  }
+
+  private mergePost(post: CERISoNetPost): void {
+    this.posts.update((list) => list.map((p) => (p._id === post._id ? post : p)));
   }
 
   publish(): void {

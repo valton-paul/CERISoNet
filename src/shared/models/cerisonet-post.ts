@@ -4,6 +4,8 @@ export interface CERISoNetPostImages {
 }
 
 export interface CERISoNetPostComment {
+  /** Présent quand le commentaire vient de MongoDB. */
+  _id?: string;
   text: string;
   commentedBy: number;
   date: string;
