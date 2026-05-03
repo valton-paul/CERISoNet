@@ -17,8 +17,10 @@ import { API_BASE_URL } from '../core/api-base';
 import { PostsService } from '../services/posts.service';
 import type { CERISoNetPost, CERISoNetPostComment } from '../../shared/models/cerisonet-post';
 
-/** Nombre de posts affichés au départ, puis ajoutés à chaque fin de scroll. */
 const PAGE_SIZE = 12;
+
+
+type FeedSortId = 'recent' | 'oldest' | 'likes' | 'comments' | 'mine';
 
 @Component({
   selector: 'app-home',
@@ -51,12 +53,51 @@ export class HomeComponent implements OnInit {
   /** Nombre de posts actuellement rendus (scroll infini). */
   readonly visibleCount = signal(PAGE_SIZE);
 
-  readonly displayedPosts = computed(() => this.posts().slice(0, this.visibleCount()));
+  /** Recherche + tri appliqués en local sur le fil chargé. */
+  readonly feedSearch = signal('');
+  readonly feedSort = signal<FeedSortId>('recent');
 
-  readonly hasMoreInFeed = computed(() => this.visibleCount() < this.posts().length);
+  readonly filteredAndSortedPosts = computed(() => {
+    const source = this.posts();
+    let list = [...source];
+    const sort = this.feedSort();
+    const uid = this.currentUserId();
+
+    if (sort === 'mine') {
+      list = uid != null ? list.filter((p) => p.createdBy === uid) : [];
+    }
+
+    const q = this.feedSearch().trim();
+    if (q) {
+      list = list.filter((p) => this.postMatchesSearch(p, q));
+    }
+
+    const orderIndex = (p: CERISoNetPost) => source.findIndex((x) => x._id === p._id);
+    if (sort === 'oldest') {
+      list.reverse();
+    } else if (sort === 'likes') {
+      list.sort((a, b) => b.likes - a.likes || orderIndex(a) - orderIndex(b));
+    } else if (sort === 'comments') {
+      list.sort(
+        (a, b) =>
+          (b.comments?.length ?? 0) - (a.comments?.length ?? 0) ||
+          orderIndex(a) - orderIndex(b),
+      );
+    }
+
+    return list;
+  });
+
+  readonly displayedPosts = computed(() =>
+    this.filteredAndSortedPosts().slice(0, this.visibleCount()),
+  );
+
+  readonly hasMoreInFeed = computed(
+    () => this.visibleCount() < this.filteredAndSortedPosts().length,
+  );
 
   readonly hiddenCount = computed(() =>
-    Math.max(0, this.posts().length - this.visibleCount()),
+    Math.max(0, this.filteredAndSortedPosts().length - this.visibleCount()),
   );
 
   constructor() {
@@ -108,6 +149,8 @@ export class HomeComponent implements OnInit {
     this.postsService.getAll().subscribe({
       next: (list) => {
         this.posts.set(list);
+        this.feedSearch.set('');
+        this.feedSort.set('recent');
         this.visibleCount.set(Math.min(PAGE_SIZE, list.length));
         this.feedLoading.set(false);
       },
@@ -119,9 +162,45 @@ export class HomeComponent implements OnInit {
   }
 
   private loadMoreChunk(): void {
-    const total = this.posts().length;
+    const total = this.filteredAndSortedPosts().length;
     this.visibleCount.update((n) => Math.min(n + PAGE_SIZE, total));
   }
+
+  private postMatchesSearch(post: CERISoNetPost, rawQuery: string): boolean {
+    const tokens = rawQuery
+      .toLowerCase()
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tokens.length === 0) {
+      return true;
+    }
+    const author = post.author?.pseudo?.trim() ?? '';
+    const tags = (post.hashtags ?? []).join(' ');
+    const comments = (post.comments ?? []).map((c) => c.text).join(' ');
+    const hay = [post.body, author, tags, comments].join('\n').toLowerCase();
+    return tokens.every((t) => hay.includes(t));
+  }
+
+  onFeedSearchChange(value: string): void {
+    this.feedSearch.set(value);
+    this.resetVisibleWindow();
+  }
+
+  setFeedSort(id: FeedSortId): void {
+    this.feedSort.set(id);
+    this.resetVisibleWindow();
+  }
+
+  private resetVisibleWindow(): void {
+    const n = this.filteredAndSortedPosts().length;
+    this.visibleCount.set(Math.min(PAGE_SIZE, Math.max(n, 0)));
+  }
+
+  isFeedSortActive(id: FeedSortId): boolean {
+    return this.feedSort() === id;
+  }
+
 
   patchCommentDraft(postId: string, value: string): void {
     this.commentDraft.update((m) => ({ ...m, [postId]: value }));
@@ -198,9 +277,8 @@ export class HomeComponent implements OnInit {
     this.postsService.create(text).subscribe({
       next: (post) => {
         this.posts.update((list) => [post, ...list]);
-        this.visibleCount.update((n) =>
-          Math.min(this.posts().length, Math.max(n, 1)),
-        );
+        const total = this.filteredAndSortedPosts().length;
+        this.visibleCount.update((n) => Math.min(total, Math.max(n, 1)));
         this.composeBody = '';
         this.publishSubmitting.set(false);
         this.toastr.success('Publication envoyée.');
