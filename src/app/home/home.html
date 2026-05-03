@@ -209,6 +209,33 @@
               {{ post.body }}
             </p>
 
+            @if (post.shared) {
+              <div class="mt-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-3 sm:p-4">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-indigo-700 mb-2">
+                  Publication partagée
+                </p>
+                @if (getSharedPost(post); as sharedPost) {
+                  <div class="rounded-lg border border-indigo-100 bg-white p-3">
+                    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span class="text-sm font-semibold text-slate-900">
+                        {{ authorDisplayName(sharedPost) }}
+                      </span>
+                      <span class="text-xs text-slate-500">
+                        {{ sharedPost.date }} · {{ sharedPost.hour }}
+                      </span>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {{ sharedPost.body }}
+                    </p>
+                  </div>
+                } @else {
+                  <p class="text-sm text-slate-600">
+                    Post d’origine introuvable (id : <span class="font-mono">{{ post.shared }}</span>).
+                  </p>
+                }
+              </div>
+            }
+
             @if (post.images?.url) {
               <figure class="mt-3 rounded-lg overflow-hidden border border-slate-100 bg-slate-50">
                 <img

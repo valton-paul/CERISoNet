@@ -92,6 +92,14 @@ export class HomeComponent implements OnInit {
     this.filteredAndSortedPosts().slice(0, this.visibleCount()),
   );
 
+  readonly postsById = computed(() => {
+    const m = new Map<string, CERISoNetPost>();
+    for (const p of this.posts()) {
+      m.set(p._id, p);
+    }
+    return m;
+  });
+
   readonly hasMoreInFeed = computed(
     () => this.visibleCount() < this.filteredAndSortedPosts().length,
   );
@@ -178,7 +186,10 @@ export class HomeComponent implements OnInit {
     const author = post.author?.pseudo?.trim() ?? '';
     const tags = (post.hashtags ?? []).join(' ');
     const comments = (post.comments ?? []).map((c) => c.text).join(' ');
-    const hay = [post.body, author, tags, comments].join('\n').toLowerCase();
+    const shared = this.getSharedPost(post);
+    const sharedAuthor = shared?.author?.pseudo?.trim() ?? '';
+    const sharedBody = shared?.body ?? '';
+    const hay = [post.body, author, tags, comments, sharedAuthor, sharedBody].join('\n').toLowerCase();
     return tokens.every((t) => hay.includes(t));
   }
 
@@ -311,6 +322,17 @@ export class HomeComponent implements OnInit {
       return 'Partage';
     }
     return `Utilisateur #${post.createdBy ?? 0}`;
+  }
+
+  getSharedPost(post: CERISoNetPost): CERISoNetPost | null {
+    if (!post.shared) {
+      return null;
+    }
+    const sharedPost = this.postsById().get(post.shared) ?? null;
+    if (!sharedPost || sharedPost._id === post._id) {
+      return null;
+    }
+    return sharedPost;
   }
 
   logout(): void {
