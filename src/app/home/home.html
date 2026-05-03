@@ -81,7 +81,7 @@
                   </p>
                   @if (!post.author) {
                     <span class="text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                      Compte inconnu
+                      Compte supprimé
                     </span>
                   }
                 </div>
@@ -89,13 +89,6 @@
                   {{ post.date }} · {{ post.hour }}
                 </p>
               </div>
-              @if (post.shared) {
-                <span
-                  class="shrink-0 text-[10px] uppercase tracking-wide font-semibold text-amber-800 bg-amber-100 px-2 py-1 rounded-md border border-amber-200/80"
-                >
-                  Partage
-                </span>
-              }
             </div>
 
             <p class="text-slate-800 text-base leading-[1.65] whitespace-pre-wrap pl-0.5">

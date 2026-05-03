@@ -143,7 +143,10 @@ export class HomeComponent implements OnInit {
     if (pseudo && pseudo.length > 0) {
       return pseudo.length >= 2 ? pseudo.slice(0, 2) : pseudo.charAt(0) + pseudo.charAt(0);
     }
-    return post.createdBy.toString().slice(0, 2);
+    if (post.shared) {
+      return 'PT';
+    }
+    return String(post.createdBy ?? 0).slice(0, 2);
   }
 
   authorDisplayName(post: CERISoNetPost): string {
@@ -151,7 +154,10 @@ export class HomeComponent implements OnInit {
     if (pseudo) {
       return pseudo;
     }
-    return `Utilisateur #${post.createdBy}`;
+    if (post.shared) {
+      return 'Partage';
+    }
+    return `Utilisateur #${post.createdBy ?? 0}`;
   }
 
   logout(): void {

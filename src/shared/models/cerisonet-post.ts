@@ -22,6 +22,7 @@ export interface CERISoNetPost {
   date: string;
   hour: string;
   body: string;
+  /** Après normalisation côté client : `null` API → `0` pour les enveloppes « partage ». */
   createdBy: number;
   /** Rempli par l’API (PostgreSQL) ; absent ou null si compte introuvable. */
   author?: CERISoNetPostAuthor | null;
