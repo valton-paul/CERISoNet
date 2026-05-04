@@ -103,4 +103,11 @@ export class PostsService {
       )
       .pipe(map((r) => normalizePost(r.post)));
   }
+
+  deletePost(postId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${API_BASE_URL}/posts/${encodeURIComponent(postId)}`,
+      { withCredentials: true },
+    );
+  }
 }

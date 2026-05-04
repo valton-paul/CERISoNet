@@ -371,4 +371,43 @@ postsRouter.delete('/:postId/comments/:commentId', async (req, res) => {
   }
 });
 
+postsRouter.delete('/:postId', async (req, res) => {
+  const s = req.session as { isConnected?: boolean; userId?: number };
+  if (!s.isConnected || s.userId == null) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+
+  const postOid = parseObjectId(req.params.postId);
+  if (!postOid) {
+    return res.status(400).json({ error: 'Identifiant de publication invalide' });
+  }
+
+  try {
+    const { database = 'db-CERI', postsCollection = 'CERISoNet' } = config.databases.mongodb;
+    const coll = store.client.db(database).collection(postsCollection);
+
+    const existing = await coll.findOne({ _id: postOid });
+    if (!existing) {
+      return res.status(404).json({ error: 'Publication introuvable' });
+    }
+    const owner =
+      typeof existing.createdBy === 'number' && Number.isInteger(existing.createdBy)
+        ? existing.createdBy
+        : null;
+    if (owner !== s.userId) {
+      return res.status(403).json({ error: 'Suppression non autorisée' });
+    }
+
+    const del = await coll.deleteOne({ _id: postOid, createdBy: s.userId });
+    if (del.deletedCount === 0) {
+      return res.status(500).json({ error: 'Suppression impossible' });
+    }
+
+    return res.status(204).send();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Impossible de supprimer la publication' });
+  }
+});
+
 export default postsRouter;

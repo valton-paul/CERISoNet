@@ -55,6 +55,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly commentSubmitting = signal<string | null>(null);
   readonly commentDeleting = signal<string | null>(null);
   readonly likeSubmitting = signal<string | null>(null);
+  readonly postDeleting = signal<string | null>(null);
 
   /** Nombre de posts actuellement rendus (scroll infini). */
   readonly visibleCount = signal(PAGE_SIZE);
@@ -367,6 +368,45 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isLikingPost(postId: string): boolean {
     return this.likeSubmitting() === postId;
+  }
+
+  canDeletePost(post: CERISoNetPost): boolean {
+    const uid = this.currentUserId();
+    return uid != null && post.createdBy === uid;
+  }
+
+  isDeletingPost(postId: string): boolean {
+    return this.postDeleting() === postId;
+  }
+
+  deletePost(post: CERISoNetPost): void {
+    if (!this.canDeletePost(post) || !post._id) {
+      return;
+    }
+    if (!confirm('Supprimer cette publication ?')) {
+      return;
+    }
+    const postId = post._id;
+    if (this.isDeletingPost(postId)) {
+      return;
+    }
+    this.postDeleting.set(postId);
+    this.postsService.deletePost(postId).subscribe({
+      next: () => {
+        this.posts.update((list) => list.filter((p) => p._id !== postId));
+        this.commentDraft.update((m) => {
+          const { [postId]: _, ...rest } = m;
+          return rest;
+        });
+        this.postDeleting.set(null);
+        this.resetVisibleWindow();
+        this.toastr.success('Publication supprimée.');
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.postDeleting.set(null);
+        this.toastr.error(err?.error?.error ?? 'Impossible de supprimer la publication.');
+      },
+    });
   }
 
   publish(): void {
