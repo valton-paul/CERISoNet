@@ -2,6 +2,7 @@ import express from "express";
 import https from "https";
 import path from "path";
 import cors from "cors";
+import { Server } from "socket.io";
 import config from "./config/config";
 import router from "./interface/routes/router";
 import helmet from "helmet";
@@ -12,9 +13,23 @@ import { connectMongoDB, store} from "./database/mongodb";
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json()); // middleware pour parser le JSON dans les requêtes entrantes
-app.use(express.urlencoded({ extended: true }));
-app.use(helmet()); // simple middleware de sécurité (rajoute des headers)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); 
+
+// Le build Angular charge le CSS principal en media="print" puis bascule via onload.
+// Helmet impose script-src-attr 'none' par défaut, ce qui bloque onload → page sans styles.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        // Autorise les images distantes (URLs http/https) dans les posts.
+        "img-src": ["'self'", "data:", "https:", "http:"],
+        "script-src-attr": ["'unsafe-inline'"],
+      },
+    },
+  })
+);
 
 app.use(
   session({
@@ -52,6 +67,23 @@ const httpsOptions = {
 };
 
 const server = https.createServer(httpsOptions, app);
+
+const io = new Server(server, {
+  cors: { origin: true, credentials: true },
+});
+
+io.on("connection", (socketClient) => {
+  socketClient.on("activite", (data: { kind?: string; postId?: string }) => {
+    if (data?.kind === "publish") {
+      socketClient.emit(
+        "infoSocket",
+        "Tu as publié — le serveur te répond ici via WebSocket (événement infoSocket).",
+      );
+    }
+  });
+});
+
+app.set("io", io);
 
 async function startServer() {
   try {

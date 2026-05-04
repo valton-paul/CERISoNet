@@ -1,0 +1,40 @@
+export interface CERISoNetPostImages {
+  url: string;
+  title: string;
+}
+
+export interface CERISoNetPostComment {
+  /** Présent quand le commentaire vient de MongoDB. */
+  _id?: string;
+  text: string;
+  commentedBy: number;
+  date: string;
+  hour: string;
+}
+
+/** Renseigné par l’API via PostgreSQL (fredouil.compte). */
+export interface CERISoNetPostAuthor {
+  id: number;
+  pseudo: string;
+  mail: string;
+}
+
+export interface CERISoNetPost {
+  _id: string;
+  date: string;
+  hour: string;
+  body: string;
+  /** Après normalisation côté client : `null` API → `0` pour les enveloppes « partage ». */
+  createdBy: number;
+  /** Rempli par l’API (PostgreSQL) ; absent ou null si compte introuvable. */
+  author?: CERISoNetPostAuthor | null;
+  images?: CERISoNetPostImages;
+  likes: number;
+  /** J’aime de l’utilisateur courant (toggle côté API). */
+  likedByMe?: boolean;
+  hashtags: string[];
+  comments: CERISoNetPostComment[];
+  shared?: string;
+}
+
+export type CERISoNetPostDraft = Omit<CERISoNetPost, '_id' | 'author'>;

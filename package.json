@@ -6,7 +6,10 @@
     "front": "ng serve",
     "back": "nodemon",
     "dev": "npm run build && nodemon",
-    "build": "ng build",
+    "build": "npm run build:front && npm run build:back",
+    "build:front": "ng build",
+    "build:back": "tsc -p tsconfig.backend.build.json",
+    "start": "node dist/back/index.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "eslint \"**/*.{js,mjs,cjs,ts,mts,cts}\" --fix",
@@ -43,6 +46,8 @@
     "ngx-toastr": "^20.0.5",
     "pg": "^8.13.0",
     "rxjs": "~7.8.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
