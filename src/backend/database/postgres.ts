@@ -12,7 +12,7 @@ export async function connectPostgres(): Promise<Pool> {
     user: config.databases.postgres.user,
     password: config.databases.postgres.password,
     database: config.databases.postgres.database,
-    ssl: config.databases.postgres.ssl === 'true',
+    ssl: config.databases.postgres.ssl,
   });
 
   try {

@@ -19,7 +19,17 @@ const config = {
       user: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
-      ssl: process.env.POSTGRES_SSL,
+      /**
+       * `ssl: true` dans node-pg vérifie le cert → échec sur cert auto-signé (DEPTH_ZERO_SELF_SIGNED_CERT).
+       * Avec `rejectUnauthorized: false`, TLS reste actif mais le cert serveur n’est pas validé (usage typique pedago).
+       */
+      ssl:
+        process.env.POSTGRES_SSL === 'true' || process.env.POSTGRES_SSL === '1'
+          ? {
+              rejectUnauthorized:
+                process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED === 'true',
+            }
+          : undefined,
     },
     mongodb: {
       url: (process.env.MONGO_URL || '').trim(),
