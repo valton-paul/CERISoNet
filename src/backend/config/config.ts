@@ -19,14 +19,7 @@ const config = {
       user: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
-      /** Sur pedago / distants, pg_hba exige souvent du SSL (« no encryption » sinon). */
-      ssl:
-        process.env.POSTGRES_SSL === 'true' || process.env.POSTGRES_SSL === '1'
-          ? {
-              rejectUnauthorized:
-                process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED === 'true',
-            }
-          : undefined,
+      ssl: process.env.POSTGRES_SSL,
     },
     mongodb: {
       url: (process.env.MONGO_URL || '').trim(),
