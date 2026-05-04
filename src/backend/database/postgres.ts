@@ -6,14 +6,26 @@ let pool: Pool | null = null;
 export async function connectPostgres(): Promise<Pool> {
   if (pool) return pool;
 
-  pool = new Pool({
-    host: config.databases.postgres.host,
-    port: config.databases.postgres.port,
-    user: config.databases.postgres.user,
-    password: config.databases.postgres.password,
-    database: config.databases.postgres.database,
-    ssl: config.databases.postgres.ssl,
-  });
+  const pg = config.databases.postgres;
+  const socketDir = pg.unixSocketDir;
+
+  /** Socket Unix (pedago) : `host` = répertoire du socket, pas de SSL. */
+  pool = socketDir
+    ? new Pool({
+        host: socketDir,
+        port: pg.port,
+        user: pg.user,
+        database: pg.database,
+        ...(pg.password ? { password: pg.password } : {}),
+      })
+    : new Pool({
+        host: pg.host,
+        port: pg.port,
+        user: pg.user,
+        password: pg.password,
+        database: pg.database,
+        ssl: pg.ssl,
+      });
 
   try {
     const client = await pool.connect();

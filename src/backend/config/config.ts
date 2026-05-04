@@ -20,8 +20,15 @@ const config = {
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
       /**
-       * `ssl: true` dans node-pg vérifie le cert → échec sur cert auto-signé (DEPTH_ZERO_SELF_SIGNED_CERT).
-       * Avec `rejectUnauthorized: false`, TLS reste actif mais le cert serveur n’est pas validé (usage typique pedago).
+       * Sur pedago : même usage que `psql etd` (socket Unix, sans TCP / sans mot de passe en peer).
+       * Répertoire contenant le socket (souvent `/var/run/postgresql` ; sinon `SHOW unix_socket_directories;` dans psql).
+       */
+      unixSocketDir: (() => {
+        const d = process.env.POSTGRES_UNIX_SOCKET_DIR?.trim();
+        return d && d.startsWith('/') ? d : undefined;
+      })(),
+      /**
+       * Connexion TCP uniquement : SSL si demandé (cert serveur souvent auto-signé).
        */
       ssl:
         process.env.POSTGRES_SSL === 'true' || process.env.POSTGRES_SSL === '1'
