@@ -19,24 +19,6 @@ const config = {
       user: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DATABASE,
-      /**
-       * Sur pedago : même usage que `psql etd` (socket Unix, sans TCP / sans mot de passe en peer).
-       * Répertoire contenant le socket (souvent `/var/run/postgresql` ; sinon `SHOW unix_socket_directories;` dans psql).
-       */
-      unixSocketDir: (() => {
-        const d = process.env.POSTGRES_UNIX_SOCKET_DIR?.trim();
-        return d && d.startsWith('/') ? d : undefined;
-      })(),
-      /**
-       * Connexion TCP uniquement : SSL si demandé (cert serveur souvent auto-signé).
-       */
-      ssl:
-        process.env.POSTGRES_SSL === 'true' || process.env.POSTGRES_SSL === '1'
-          ? {
-              rejectUnauthorized:
-                process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED === 'true',
-            }
-          : undefined,
     },
     mongodb: {
       url: (process.env.MONGO_URL || '').trim(),

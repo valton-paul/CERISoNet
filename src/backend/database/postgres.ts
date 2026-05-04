@@ -7,25 +7,13 @@ export async function connectPostgres(): Promise<Pool> {
   if (pool) return pool;
 
   const pg = config.databases.postgres;
-  const socketDir = pg.unixSocketDir;
-
-  /** Socket Unix (pedago) : `host` = répertoire du socket, pas de SSL. */
-  pool = socketDir
-    ? new Pool({
-        host: socketDir,
-        port: pg.port,
-        user: pg.user,
-        database: pg.database,
-        ...(pg.password ? { password: pg.password } : {}),
-      })
-    : new Pool({
-        host: pg.host,
-        port: pg.port,
-        user: pg.user,
-        password: pg.password,
-        database: pg.database,
-        ssl: pg.ssl,
-      });
+  pool = new Pool({
+    host: pg.host,
+    port: pg.port,
+    user: pg.user,
+    password: pg.password,
+    database: pg.database,
+  });
 
   try {
     const client = await pool.connect();
