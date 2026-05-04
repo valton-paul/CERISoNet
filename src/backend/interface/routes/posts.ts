@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
+import type { Server } from 'socket.io';
 import { ObjectId } from 'mongodb';
 import { store } from '../../database/mongodb';
 import { getPostgres } from '../../database/postgres';
@@ -56,6 +57,51 @@ function parseObjectId(id: string): ObjectId | null {
     return null;
   }
   return new ObjectId(id);
+}
+
+function getIo(req: Request): Server | undefined {
+  return req.app.get('io') as Server | undefined;
+}
+
+function normalizeLikedBy(raw: unknown): number[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter((x): x is number => typeof x === 'number' && Number.isInteger(x));
+}
+
+type MongoPostDoc = {
+  _id: ObjectId;
+  likedBy?: unknown;
+  likes?: unknown;
+  body?: unknown;
+  date?: unknown;
+  hour?: unknown;
+  createdBy?: unknown;
+  hashtags?: unknown;
+  comments?: unknown;
+  shared?: unknown;
+  images?: unknown;
+};
+
+/** Post JSON pour le client (sans exposer le tableau `likedBy`). */
+function shapePostFromMongo(d: MongoPostDoc, viewerId?: number) {
+  const lb = normalizeLikedBy(d.likedBy);
+  const likes = typeof d.likes === 'number' && Number.isFinite(d.likes) ? d.likes : 0;
+  return {
+    _id: d._id.toString(),
+    body: typeof d.body === 'string' ? d.body : '',
+    date: typeof d.date === 'string' ? d.date : '',
+    hour: typeof d.hour === 'string' ? d.hour : '',
+    createdBy: d.createdBy,
+    likes,
+    hashtags: Array.isArray(d.hashtags) ? d.hashtags : [],
+    comments: serializeCommentIds(d.comments),
+    shared: d.shared != null ? String(d.shared) : undefined,
+    images: d.images,
+    likedByMe:
+      typeof viewerId === 'number' && Number.isInteger(viewerId) && lb.includes(viewerId),
+  };
 }
 
 /** Sérialise les `_id` des sous-documents pour `res.json` (évite `{ $oid: … }` côté client). */
@@ -123,6 +169,7 @@ postsRouter.post('/', async (req, res) => {
       date,
       hour,
       likes: 0,
+      likedBy: [] as number[],
       hashtags: [] as string[],
       comments: [] as unknown[],
     };
@@ -133,13 +180,7 @@ postsRouter.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Publication créée mais introuvable' });
     }
 
-    const post = {
-      ...created,
-      _id: created._id.toString(),
-      shared: created.shared != null ? String(created.shared) : undefined,
-      createdBy: created.createdBy,
-      comments: serializeCommentIds(created.comments),
-    };
+    const post = shapePostFromMongo(created as unknown as MongoPostDoc, s.userId);
     const [enriched] = await enrichPostsWithAuthors([post]);
     return res.status(201).json({ post: enriched });
   } catch (e) {
@@ -149,7 +190,7 @@ postsRouter.post('/', async (req, res) => {
 });
 
 postsRouter.get('/', async (req, res) => {
-  const s = req.session as { isConnected?: boolean };
+  const s = req.session as { isConnected?: boolean; userId?: number };
   if (!s.isConnected) {
     return res.status(401).json({ error: 'Non authentifié' });
   }
@@ -158,18 +199,80 @@ postsRouter.get('/', async (req, res) => {
     const { database = 'db-CERI', postsCollection = 'CERISoNet' } = config.databases.mongodb;
     const coll = store.client.db(database).collection(postsCollection);
     const docs = await coll.find({}).sort({ _id: -1 }).toArray();
-    const base = docs.map((d) => ({
-      ...d,
-      _id: d._id.toString(),
-      shared: d.shared != null ? String(d.shared) : undefined,
-      createdBy: d.createdBy,
-      comments: serializeCommentIds(d.comments),
-    }));
+    const viewerId =
+      typeof s.userId === 'number' && Number.isInteger(s.userId) ? s.userId : undefined;
+    const base = docs.map((d) => shapePostFromMongo(d as unknown as MongoPostDoc, viewerId));
     const posts = await enrichPostsWithAuthors(base);
     return res.json({ posts });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Impossible de charger les publications' });
+  }
+});
+
+postsRouter.post('/:postId/like', async (req, res) => {
+  const s = req.session as { isConnected?: boolean; userId?: number };
+  if (!s.isConnected || s.userId == null) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+
+  const postOid = parseObjectId(req.params.postId);
+  if (!postOid) {
+    return res.status(400).json({ error: 'Identifiant de publication invalide' });
+  }
+
+  try {
+    const { database = 'db-CERI', postsCollection = 'CERISoNet' } = config.databases.mongodb;
+    const coll = store.client.db(database).collection(postsCollection);
+    const existing = await coll.findOne({ _id: postOid });
+    if (!existing) {
+      return res.status(404).json({ error: 'Publication introuvable' });
+    }
+
+    const lb = normalizeLikedBy((existing as { likedBy?: unknown }).likedBy);
+    const uid = s.userId;
+    const hadLiked = lb.includes(uid);
+    const nextLb = hadLiked ? lb.filter((id) => id !== uid) : [...lb, uid];
+    const prevLikes =
+      typeof existing.likes === 'number' && Number.isFinite(existing.likes)
+        ? existing.likes
+        : 0;
+    const newLikes = Math.max(0, prevLikes + (hadLiked ? -1 : 1));
+
+    await coll.updateOne({ _id: postOid }, { $set: { likedBy: nextLb, likes: newLikes } });
+
+    const updated = await coll.findOne({ _id: postOid });
+    if (!updated) {
+      return res.status(500).json({ error: 'Publication introuvable après mise à jour' });
+    }
+
+    const post = shapePostFromMongo(updated as unknown as MongoPostDoc, s.userId);
+    const enrichedList = await enrichPostsWithAuthors([post]);
+    const enriched = enrichedList[0];
+    if (!enriched) {
+      return res.status(500).json({ error: 'Impossible d’enrichir la publication' });
+    }
+
+    const pool = getPostgres();
+    const { rows } = await pool.query<{ pseudo: string }>(
+      `SELECT pseudo FROM fredouil.compte WHERE id = $1 LIMIT 1`,
+      [s.userId],
+    );
+    const pseudo = rows[0]?.pseudo?.trim() || `Utilisateur #${s.userId}`;
+
+    const io = getIo(req);
+    io?.emit('postLikeUpdated', {
+      postId: enriched._id,
+      likes: newLikes,
+      actorId: s.userId,
+      pseudo,
+      removing: hadLiked,
+    });
+
+    return res.status(200).json({ post: enriched });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Impossible de mettre à jour le j’aime' });
   }
 });
 
@@ -217,13 +320,7 @@ postsRouter.post('/:postId/comments', async (req, res) => {
       return res.status(500).json({ error: 'Publication introuvable après mise à jour' });
     }
 
-    const post = {
-      ...updated,
-      _id: updated._id.toString(),
-      shared: updated.shared != null ? String(updated.shared) : undefined,
-      createdBy: updated.createdBy,
-      comments: serializeCommentIds(updated.comments),
-    };
+    const post = shapePostFromMongo(updated as unknown as MongoPostDoc, s.userId);
     const [enriched] = await enrichPostsWithAuthors([post]);
     return res.status(201).json({ post: enriched });
   } catch (e) {
@@ -265,13 +362,7 @@ postsRouter.delete('/:postId/comments/:commentId', async (req, res) => {
       return res.status(500).json({ error: 'Publication introuvable après suppression' });
     }
 
-    const post = {
-      ...updated,
-      _id: updated._id.toString(),
-      shared: updated.shared != null ? String(updated.shared) : undefined,
-      createdBy: updated.createdBy,
-      comments: serializeCommentIds(updated.comments),
-    };
+    const post = shapePostFromMongo(updated as unknown as MongoPostDoc, s.userId);
     const [enriched] = await enrichPostsWithAuthors([post]);
     return res.status(200).json({ post: enriched });
   } catch (e) {

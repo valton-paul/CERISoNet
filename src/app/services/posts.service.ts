@@ -48,6 +48,7 @@ function normalizePost(raw: CERISoNetPost): CERISoNetPost {
       ? raw.comments.map((c) => normalizeComment(c))
       : [],
     likes: typeof raw.likes === 'number' ? raw.likes : 0,
+    likedByMe: typeof raw.likedByMe === 'boolean' ? raw.likedByMe : false,
     images: normalizeImages(raw.images as unknown),
   };
 }
@@ -88,6 +89,16 @@ export class PostsService {
     return this.http
       .delete<{ post: CERISoNetPost }>(
         `${API_BASE_URL}/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+        { withCredentials: true },
+      )
+      .pipe(map((r) => normalizePost(r.post)));
+  }
+
+  toggleLike(postId: string): Observable<CERISoNetPost> {
+    return this.http
+      .post<{ post: CERISoNetPost }>(
+        `${API_BASE_URL}/posts/${encodeURIComponent(postId)}/like`,
+        {},
         { withCredentials: true },
       )
       .pipe(map((r) => normalizePost(r.post)));

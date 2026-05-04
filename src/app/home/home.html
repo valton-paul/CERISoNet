@@ -267,20 +267,24 @@
             <div
               class="flex flex-wrap items-center gap-3 mt-5 pt-4 border-t border-slate-100 text-sm"
             >
-              <span
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-800 border border-rose-100 font-medium"
-                title="Nombre de j’aime (données API)"
+              <button
+                type="button"
+                (click)="toggleLikePost(post._id)"
+                [disabled]="isLikingPost(post._id)"
+                [class.bg-rose-200]="post.likedByMe"
+                [class.border-rose-400]="post.likedByMe"
+                [class.text-rose-950]="post.likedByMe"
+                [class.bg-rose-50]="!post.likedByMe"
+                [class.border-rose-100]="!post.likedByMe"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-rose-800 border font-medium hover:bg-rose-100/90 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                [attr.title]="
+                  post.likedByMe
+                    ? 'Retirer mon j’aime (WebSocket pour les autres)'
+                    : 'Ajouter un j’aime (enregistré en base, temps réel)'
+                "
               >
                 <span class="text-rose-500 text-base leading-none" aria-hidden="true">♥</span>
                 {{ post.likes }}
-              </span>
-              <button
-                type="button"
-                (click)="socketLikeDemo(post._id)"
-                class="text-xs font-medium text-rose-700 underline decoration-rose-300 hover:text-rose-900"
-                title="Démo : envoie un événement WebSocket au serveur (sans enregistrer de like)"
-              >
-                WS « j’aime »
               </button>
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/80 font-medium"

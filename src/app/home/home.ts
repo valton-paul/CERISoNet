@@ -54,6 +54,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly commentDraft = signal<Record<string, string>>({});
   readonly commentSubmitting = signal<string | null>(null);
   readonly commentDeleting = signal<string | null>(null);
+  readonly likeSubmitting = signal<string | null>(null);
 
   /** Nombre de posts actuellement rendus (scroll infini). */
   readonly visibleCount = signal(PAGE_SIZE);
@@ -165,6 +166,58 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.toastr.info(text);
       }
     });
+
+    s.on(
+      'postLikeUpdated',
+      (data: {
+        postId?: string;
+        likes?: number;
+        actorId?: number;
+        pseudo?: string;
+        removing?: boolean;
+      }) => {
+        const postId = typeof data?.postId === 'string' ? data.postId : '';
+        const likes = typeof data?.likes === 'number' ? data.likes : null;
+        if (!postId || likes == null) {
+          return;
+        }
+        const actorId = data.actorId;
+        const removing = data.removing === true;
+        const myId = this.currentUserId();
+        this.posts.update((list) =>
+          list.map((p) => {
+            if (p._id !== postId) {
+              return p;
+            }
+            let likedByMe = p.likedByMe ?? false;
+            if (typeof actorId === 'number' && myId != null && actorId === myId) {
+              likedByMe = !removing;
+            }
+            return { ...p, likes, likedByMe };
+          }),
+        );
+
+        if (typeof actorId === 'number' && myId != null && actorId === myId) {
+          if (removing) {
+            this.toastr.info(
+              `Vous avez retiré votre j’aime sur le post « ${postId} » via socket.`,
+            );
+          } else {
+            this.toastr.info(`Vous avez liké le post « ${postId} » via socket.`);
+          }
+        }
+
+        const pseudo = typeof data.pseudo === 'string' ? data.pseudo.trim() : '';
+        if (
+          pseudo &&
+          typeof actorId === 'number' &&
+          actorId !== myId &&
+          !removing
+        ) {
+          this.toastr.info(`${pseudo} a aimé une publication.`);
+        }
+      },
+    );
   }
 
   private loadFeed(): void {
@@ -295,6 +348,27 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.posts.update((list) => list.map((p) => (p._id === post._id ? post : p)));
   }
 
+  toggleLikePost(postId: string): void {
+    if (this.likeSubmitting()) {
+      return;
+    }
+    this.likeSubmitting.set(postId);
+    this.postsService.toggleLike(postId).subscribe({
+      next: (post) => {
+        this.mergePost(post);
+        this.likeSubmitting.set(null);
+      },
+      error: (err: { error?: { error?: string } }) => {
+        this.likeSubmitting.set(null);
+        this.toastr.error(err?.error?.error ?? 'Impossible de mettre à jour le j’aime.');
+      },
+    });
+  }
+
+  isLikingPost(postId: string): boolean {
+    return this.likeSubmitting() === postId;
+  }
+
   publish(): void {
     const text = this.composeBody.trim();
     if (!text || this.publishSubmitting()) {
@@ -339,11 +413,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       return 'Partage';
     }
     return `Utilisateur #${post.createdBy ?? 0}`;
-  }
-
-  /** Démo WebSocket uniquement (ne modifie pas la base). */
-  socketLikeDemo(postId: string): void {
-    this.socket?.emit('activite', { kind: 'like', postId });
   }
 
   getSharedPost(post: CERISoNetPost): CERISoNetPost | null {

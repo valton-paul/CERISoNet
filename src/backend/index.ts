@@ -79,20 +79,11 @@ io.on("connection", (socketClient) => {
         "infoSocket",
         "Tu as publié — le serveur te répond ici via WebSocket (événement infoSocket).",
       );
-      return;
-    }
-    if (data?.kind === "like") {
-      const hint =
-        typeof data.postId === "string" && data.postId.length > 0
-          ? ` (post ${data.postId.slice(0, 8)}…)`
-          : "";
-      socketClient.emit(
-        "infoSocket",
-        `Tu as liké${hint} — confirmé par le serveur via WebSocket.`,
-      );
     }
   });
 });
+
+app.set("io", io);
 
 async function startServer() {
   try {

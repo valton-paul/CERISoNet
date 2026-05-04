@@ -30,6 +30,8 @@ export interface CERISoNetPost {
   author?: CERISoNetPostAuthor | null;
   images?: CERISoNetPostImages;
   likes: number;
+  /** J’aime de l’utilisateur courant (toggle côté API). */
+  likedByMe?: boolean;
   hashtags: string[];
   comments: CERISoNetPostComment[];
   shared?: string;
