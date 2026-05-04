@@ -1,5 +1,14 @@
-/** Origine de l’API HTTPS (même port que `PORT_HTTPS` du backend). */
-export const API_BASE_URL = 'https://pedago.univ-avignon.fr:3121/api';
+/**
+ * Origine dynamique pour éviter les erreurs `ERR_CONNECTION_REFUSED`
+ * quand l'app est servie derrière un proxy (port backend non exposé publiquement).
+ */
+const ORIGIN =
+  typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://pedago.univ-avignon.fr:3121';
 
-/** Même origine sans `/api` — Socket.io (cf. fiche WebSocket). */
-export const SOCKET_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+/** API sur la même origine que l'app. */
+export const API_BASE_URL = `${ORIGIN}/api`;
+
+/** Socket.io sur la même origine que l'app. */
+export const SOCKET_ORIGIN = ORIGIN;
