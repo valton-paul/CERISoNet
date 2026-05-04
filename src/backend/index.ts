@@ -2,6 +2,7 @@ import express from "express";
 import https from "https";
 import path from "path";
 import cors from "cors";
+import { Server } from "socket.io";
 import config from "./config/config";
 import router from "./interface/routes/router";
 import helmet from "helmet";
@@ -66,6 +67,32 @@ const httpsOptions = {
 };
 
 const server = https.createServer(httpsOptions, app);
+
+const io = new Server(server, {
+  cors: { origin: true, credentials: true },
+});
+
+io.on("connection", (socketClient) => {
+  socketClient.on("activite", (data: { kind?: string; postId?: string }) => {
+    if (data?.kind === "publish") {
+      socketClient.emit(
+        "infoSocket",
+        "Tu as publié — le serveur te répond ici via WebSocket (événement infoSocket).",
+      );
+      return;
+    }
+    if (data?.kind === "like") {
+      const hint =
+        typeof data.postId === "string" && data.postId.length > 0
+          ? ` (post ${data.postId.slice(0, 8)}…)`
+          : "";
+      socketClient.emit(
+        "infoSocket",
+        `Tu as liké${hint} — confirmé par le serveur via WebSocket.`,
+      );
+    }
+  });
+});
 
 async function startServer() {
   try {

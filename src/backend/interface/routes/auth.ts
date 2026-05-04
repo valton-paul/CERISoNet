@@ -99,4 +99,14 @@ authRouter.get("/me", (req: Request, res: Response) => {
   return res.status(200).json({ connected: false });
 });
 
+authRouter.post("/logout", (req: Request, res: Response) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Erreur lors de la destruction de session :", err);
+      return res.status(500).json({ error: "Impossible de se déconnecter" });
+    }
+    return res.status(200).json({ ok: true });
+  });
+});
+
 export default authRouter;

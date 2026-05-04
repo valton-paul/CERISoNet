@@ -1,5 +1,6 @@
 import {
   Component,
+  OnDestroy,
   OnInit,
   computed,
   effect,
@@ -13,7 +14,9 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { API_BASE_URL } from '../core/api-base';
+import { io, type Socket } from 'socket.io-client';
+import { API_BASE_URL, SOCKET_ORIGIN } from '../core/api-base';
+import { clearClientAuthSession, isClientMarkedConnected } from '../core/client-session';
 import { PostsService } from '../services/posts.service';
 import type { CERISoNetPost, CERISoNetPostComment } from '../../shared/models/cerisonet-post';
 
@@ -28,11 +31,13 @@ type FeedSortId = 'recent' | 'oldest' | 'likes' | 'comments' | 'mine';
   imports: [CommonModule, FormsModule],
   templateUrl: './home.html',
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   private readonly postsService = inject(PostsService);
   private readonly toastr = inject(ToastrService);
+
+  private socket: Socket | null = null;
 
   private readonly loadMoreSentinel = viewChild<ElementRef<HTMLElement>>('loadMoreSentinel');
 
@@ -116,7 +121,7 @@ export class HomeComponent implements OnInit {
       }
 
       const el = sentinel.nativeElement;
-      const io = new IntersectionObserver(
+      const scrollObserver = new IntersectionObserver(
         (entries) => {
           if (entries[0]?.isIntersecting) {
             this.loadMoreChunk();
@@ -124,31 +129,42 @@ export class HomeComponent implements OnInit {
         },
         { root: null, rootMargin: '280px', threshold: 0 },
       );
-      io.observe(el);
-      onCleanup(() => io.disconnect());
+      scrollObserver.observe(el);
+      onCleanup(() => scrollObserver.disconnect());
     });
   }
 
   ngOnInit(): void {
+    if (!isClientMarkedConnected()) {
+      void this.router.navigate(['/auth']);
+      return;
+    }
+    const rawId = localStorage.getItem('userId');
+    const uid = rawId != null ? Number(rawId) : NaN;
+    if (Number.isFinite(uid)) {
+      this.currentUserId.set(uid);
+    }
+    this.connectSocket();
+    this.loadFeed();
+  }
 
-    const meUrl = `${API_BASE_URL}/auth/me`;
-    this.http
-      .get<{ connected: boolean; userId?: number }>(meUrl, { withCredentials: true })
-      .subscribe({
-        next: (response) => {
-          if (!response.connected) {
-            void this.router.navigate(['/auth']);
-            return;
-          }
-          if (typeof response.userId === 'number' && Number.isFinite(response.userId)) {
-            this.currentUserId.set(response.userId);
-          }
-          this.loadFeed();
-        },
-        error: () => {
-          void this.router.navigate(['/auth']);
-        },
-      });
+  ngOnDestroy(): void {
+    this.socket?.removeAllListeners();
+    this.socket?.disconnect();
+    this.socket = null;
+  }
+
+  private connectSocket(): void {
+    this.socket?.removeAllListeners();
+    this.socket?.disconnect();
+    const s = io(SOCKET_ORIGIN, { withCredentials: true });
+    this.socket = s;
+    s.on('infoSocket', (msg: unknown) => {
+      const text = typeof msg === 'string' ? msg : '';
+      if (text) {
+        this.toastr.info(text);
+      }
+    });
   }
 
   private loadFeed(): void {
@@ -293,6 +309,7 @@ export class HomeComponent implements OnInit {
         this.composeBody = '';
         this.publishSubmitting.set(false);
         this.toastr.success('Publication envoyée.');
+        this.socket?.emit('activite', { kind: 'publish' });
       },
       error: (err: { error?: { error?: string } }) => {
         this.publishSubmitting.set(false);
@@ -324,6 +341,11 @@ export class HomeComponent implements OnInit {
     return `Utilisateur #${post.createdBy ?? 0}`;
   }
 
+  /** Démo WebSocket uniquement (ne modifie pas la base). */
+  socketLikeDemo(postId: string): void {
+    this.socket?.emit('activite', { kind: 'like', postId });
+  }
+
   getSharedPost(post: CERISoNetPost): CERISoNetPost | null {
     if (!post.shared) {
       return null;
@@ -336,6 +358,19 @@ export class HomeComponent implements OnInit {
   }
 
   logout(): void {
+    this.http
+      .post<{ ok?: boolean }>(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true })
+      .subscribe({
+        next: () => this.finishLogout(),
+        error: () => this.finishLogout(),
+      });
+  }
+
+  private finishLogout(): void {
+    clearClientAuthSession();
+    this.socket?.removeAllListeners();
+    this.socket?.disconnect();
+    this.socket = null;
     void this.router.navigate(['/auth']);
   }
 }

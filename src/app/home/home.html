@@ -269,11 +269,19 @@
             >
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-800 border border-rose-100 font-medium"
-                title="J’aime"
+                title="Nombre de j’aime (données API)"
               >
                 <span class="text-rose-500 text-base leading-none" aria-hidden="true">♥</span>
                 {{ post.likes }}
               </span>
+              <button
+                type="button"
+                (click)="socketLikeDemo(post._id)"
+                class="text-xs font-medium text-rose-700 underline decoration-rose-300 hover:text-rose-900"
+                title="Démo : envoie un événement WebSocket au serveur (sans enregistrer de like)"
+              >
+                WS « j’aime »
+              </button>
               <span
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/80 font-medium"
               >
